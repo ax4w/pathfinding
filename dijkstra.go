@@ -5,7 +5,7 @@ import (
 	"time"
 )
 
-func solveAStar(grid [DIM][DIM]*cell, start, finish *cell) {
+func solveDijkstra(grid [DIM][DIM]*cell, start, finish *cell) {
 	defer func() {
 		lock = false
 	}()
@@ -32,19 +32,14 @@ func solveAStar(grid [DIM][DIM]*cell, start, finish *cell) {
 			if fromGrid.isInList(closeList) {
 				continue
 			}
-			gNew := current.g + 1
-			hNew := fromGrid.getHScore(finish)
-			fNew := gNew + hNew
-			if fromGrid.f == INF || fromGrid.f > fNew {
-				fromGrid.g = gNew
-				fromGrid.h = hNew
-				fromGrid.f = fNew
+			tg := current.g + 1
+			if tg < fromGrid.g {
+				fromGrid.g = tg
 				fromGrid.parent = current
 				fromGrid.hit = true
-				if !fromGrid.isInList(openList) {
-					openList = append(openList, fromGrid)
-				}
-
+			}
+			if !fromGrid.isInList(openList) {
+				openList = append(openList, fromGrid)
 			}
 		}
 		time.Sleep(20 * time.Millisecond)

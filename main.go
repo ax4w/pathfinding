@@ -3,6 +3,7 @@ package main
 import (
 	"math"
 
+	gui "github.com/gen2brain/raylib-go/raygui"
 	rl "github.com/gen2brain/raylib-go/raylib"
 )
 
@@ -15,10 +16,10 @@ const (
 )
 
 var (
-	start  *cell
-	finish *cell
-	RECT   = float32(20)
-	lock   = false
+	RECT           = float32(20)
+	lock           = false
+	dropDownActive = int32(0)
+	dropDownEdit   bool
 )
 
 func mouseOverlapsField(mx, my, rx, ry float32) bool {
@@ -26,17 +27,22 @@ func mouseOverlapsField(mx, my, rx, ry float32) bool {
 }
 
 func drawControls() {
-	rl.DrawRectangle(10, WIN+(CONTROLS/6)-20, 30, 30, rl.Red)
-	rl.DrawText("press s to set the starting point on the current mouse position", 50, WIN+(CONTROLS/6)-20, 30, rl.White)
+	rl.DrawRectangle(10, WIN+CONTROLS-50, 30, 30, rl.Red)
+	rl.DrawText("press s to set the starting point on the current mouse position", 50, WIN+CONTROLS-50, 30, rl.White)
 	rl.DrawRectangle(10, WIN+(CONTROLS/3), 30, 30, rl.Green)
 	rl.DrawText("press t to set the target point on the current mouse position", 50, WIN+(CONTROLS/3), 30, rl.White)
 	rl.DrawRectangle(10, WIN+(CONTROLS/2)+20, 30, 30, rl.Gray)
 	rl.DrawText("hold the l/r mouse button and drag over the field to draw / delete barriers", 50, WIN+(CONTROLS/2)+20, 30, rl.White)
-	rl.DrawText("press c to clear the field", 50, WIN+CONTROLS-50, 30, rl.White)
+	rl.DrawText("press c to clear the field", 50, WIN+(CONTROLS/6)-20, 30, rl.White)
+	sR := rl.Rectangle{X: WIN - 200, Y: WIN + (CONTROLS / 6) - 20, Width: 160, Height: 50}
+	gui.SetStyle(gui.DEFAULT, gui.TEXT_SIZE, 30)
+	if gui.DropdownBox(sR, "AStar;Dijkstra", &dropDownActive, dropDownEdit) {
+		dropDownEdit = !dropDownEdit
+	}
 }
 
 func main() {
-	rl.InitWindow(WIN, WIN+CONTROLS, "A*")
+	rl.InitWindow(WIN, WIN+CONTROLS, "Pathfinding")
 	RECT = WIN / DIM
 	defer rl.CloseWindow()
 	grid := [DIM][DIM]*cell{}
@@ -45,7 +51,10 @@ func main() {
 			grid[i][j] = &cell{x: i, y: j, g: INF, f: INF}
 		}
 	}
-
+	var (
+		start  *cell
+		finish *cell
+	)
 	for !rl.WindowShouldClose() {
 		rl.BeginDrawing()
 		rl.ClearBackground(rl.Black)
@@ -99,8 +108,19 @@ func main() {
 				}
 			}
 		} else if rl.IsKeyPressed(rl.KeySpace) && !lock {
+			if start == nil || finish == nil {
+				continue
+			}
+			if start == finish {
+				continue
+			}
 			lock = true
-			go solve(grid, start, finish)
+			if dropDownActive == 0 {
+				go solveAStar(grid, start, finish)
+			} else {
+				go solveDijkstra(grid, start, finish)
+			}
+
 		} else if rl.IsKeyPressed(rl.KeyC) && !lock {
 			//clear
 			start, finish = nil, nil
@@ -113,7 +133,7 @@ func main() {
 					grid[i][j].shortest = false
 					grid[i][j].hit = false
 					grid[i][j].parent = nil
-					//grid[i][j] = &cell{x: i, y: j, g: INF, f: INF}
+
 				}
 			}
 		}

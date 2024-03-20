@@ -11,5 +11,8 @@ func (c cellList) Swap(i, j int) {
 }
 
 func (c cellList) Less(i, j int) bool {
+	if c[i].f < c[j].f && c[i].index != c[j].index {
+		return c[i].index < c[j].index
+	}
 	return c[i].f < c[j].f
 }
